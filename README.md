@@ -27,7 +27,7 @@
 - **Typing Sounds** - Satisfying blips with pitch variation based on typing speed
 - **Deletion Booms** - Powerful sound effects for backspace/delete
 - **Level-up Fanfare** - Triumphant audio when reaching new levels
-- **Web Audio Synthesis** - No external files needed, all sounds generated in-browser
+- **Selectable Audio Backend** - Use webview audio or a local helper backend as implementation evolves
 
 ### 📊 **Progression System**
 - **XP Tracking** - Gain experience points for every character typed
@@ -54,6 +54,7 @@
    git clone https://github.com/merenut/RediculousCoding
    cd RediculousCoding
    npm install
+   npm run build:audio-helper
    npm run compile
    # Press F5 in VS Code to launch Extension Development Host
    ```
@@ -83,6 +84,7 @@ All settings can be found in VS Code Settings → Extensions → Ridiculous Codi
 | `ridiculousCoding.chars` | `true` | Display character labels with effects |
 | `ridiculousCoding.shake` | `true` | Enable screen shake effects |
 | `ridiculousCoding.sound` | `true` | Play audio feedback |
+| `ridiculousCoding.soundBackend` | `auto` | Select audio backend. Native/helper audio is intended for local desktop VS Code sessions only |
 | `ridiculousCoding.fireworks` | `true` | Celebrate level-ups with fireworks |
 | `ridiculousCoding.enableStatusBar` | `true` | Show XP/Level in status bar |
 | `ridiculousCoding.leveling.baseXp` | `50` | Base XP for leveling calculations |
@@ -118,6 +120,9 @@ cd RediculousCoding
 # Install dependencies
 npm install
 
+# Build the native audio helper for your current platform
+npm run build:audio-helper
+
 # Compile TypeScript
 npm run compile
 
@@ -125,11 +130,19 @@ npm run compile
 code .
 ```
 
+Native/helper audio is intended for local desktop VS Code sessions only.
+
+### Helper Targets
+- `npm run build:audio-helper` builds the helper for the current host platform.
+- `npm run build:audio-helper:win32-x64`, `npm run build:audio-helper:linux-x64`, and `npm run build:audio-helper:darwin-x64` are the primary target scripts for packaging on native CI runners.
+- ARM64 targets are wired into the build script as `win32-arm64`, `linux-arm64`, and `darwin-arm64`, but they still require matching toolchains and runner support before they should be considered release-ready.
+
 ### Architecture
 - **Extension Host** (`src/extension.ts`) - Main extension logic
 - **XP Service** (`src/xp/XPService.ts`) - Handles leveling and progression
 - **Effect Manager** (`src/effects/EffectManager.ts`) - Visual effects and animations
 - **Panel Provider** (`src/view/PanelViewProvider.ts`) - Webview control panel
+- **Audio Service** (`src/audio/`) - Host-side audio backend selection and native-helper integration
 - **Webview** (`webview/`) - HTML/CSS/JS for the settings panel
 
 ## 🎊 Credits & Inspiration
@@ -144,7 +157,7 @@ This VS Code extension lovingly recreates and expands upon the original concept:
 
 - **Performance Optimized** - Effects are rate-limited and memory-managed
 - **Multi-Editor Support** - Works independently across multiple open editors  
-- **No Dependencies** - All sounds generated via Web Audio API (no external files)
+- **Hybrid Audio Rollout** - Native/helper audio targets local desktop sessions, with webview audio as fallback
 - **Cross-Platform** - Works on Windows, macOS, and Linux
 - **VS Code API** - Uses official VS Code decoration and webview APIs
 

@@ -2,6 +2,7 @@
 **/.gitignore
 **/.DS_Store
 src/**
+helper/**
 .github/**
 .vscode/**
 test/**

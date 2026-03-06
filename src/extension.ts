@@ -1,8 +1,9 @@
 import * as vscode from "vscode";
+import { AudioService } from "./audio/AudioService";
 import { EffectManager } from "./effects/EffectManager";
 import { XPService } from "./xp/XPService";
 import { PanelViewProvider } from "./view/PanelViewProvider";
-import { PanelMessageFromExt, Settings } from "./types";
+import { HostSoundEvent, PanelMessageFromExt, Settings } from "./types";
 
 export function activate(context: vscode.ExtensionContext) {
   const cfg = vscode.workspace.getConfiguration("ridiculousCoding");
@@ -14,6 +15,7 @@ export function activate(context: vscode.ExtensionContext) {
     shakeAmplitude: cfg.get("shakeAmplitude", 6),
     shakeDecayMs: cfg.get("shakeDecayMs", 120),
     sound: cfg.get("sound", true),
+    soundBackend: cfg.get("soundBackend", "auto"),
     fireworks: cfg.get("fireworks", true),
     baseXp: cfg.get("leveling.baseXp", 50),
     enableStatusBar: cfg.get("enableStatusBar", true),
@@ -23,9 +25,16 @@ export function activate(context: vscode.ExtensionContext) {
   const xp = new XPService(context, settings.baseXp);
   const effects = new EffectManager(context);
   const panelProvider = new PanelViewProvider(context);
+  const audio = new AudioService(context, panelProvider);
+  context.subscriptions.push(audio);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(PanelViewProvider.viewType, panelProvider)
   );
+  void audio.configure(settings.soundBackend).then(() => {
+    if (audio.getAudioBackendState().active !== "webview") {
+      revealedForWebviewFallback = false;
+    }
+  });
 
   // Status bar
   const status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
@@ -43,8 +52,7 @@ export function activate(context: vscode.ExtensionContext) {
     status.show();
   }
   updateStatus();
-  // One-time panel reveal to help unlock audio on first sound attempt
-  let revealedForSound = false;
+  let revealedForWebviewFallback = false;
 
   // Commands
   context.subscriptions.push(
@@ -54,7 +62,8 @@ export function activate(context: vscode.ExtensionContext) {
       pushState();
       updateStatus();
       if (settings.fireworks) {
-        post({ type: "fireworks", enabled: settings.sound });
+        playSound({ type: "fireworks" }, settings.sound && !settings.reducedEffects);
+        post({ type: "fireworks", enabled: false });
       }
     }),
     vscode.commands.registerCommand("ridiculousCoding.toggleExplosions", () => toggle("explosions")),
@@ -62,6 +71,10 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("ridiculousCoding.toggleChars", () => toggle("chars")),
     vscode.commands.registerCommand("ridiculousCoding.toggleShake", () => toggle("shake")),
     vscode.commands.registerCommand("ridiculousCoding.toggleSound", () => toggle("sound")),
+    vscode.commands.registerCommand("ridiculousCoding.testFireworks", () => {
+      playSound({ type: "fireworks" }, settings.sound && !settings.reducedEffects);
+      post({ type: "fireworks", enabled: false });
+    }),
     vscode.commands.registerCommand("ridiculousCoding.toggleFireworks", () => toggle("fireworks")),
     vscode.commands.registerCommand("ridiculousCoding.toggleReducedEffects", () => toggle("reducedEffects"))
   );
@@ -73,6 +86,7 @@ export function activate(context: vscode.ExtensionContext) {
       chars: "chars",
       shake: "shake",
       sound: "sound",
+      soundBackend: "soundBackend",
       fireworks: "fireworks",
       baseXp: "leveling.baseXp",
       enableStatusBar: "enableStatusBar",
@@ -99,20 +113,26 @@ export function activate(context: vscode.ExtensionContext) {
         shakeAmplitude: cfg.get("shakeAmplitude", 6),
         shakeDecayMs: cfg.get("shakeDecayMs", 120),
         sound: cfg.get("sound", true),
+        soundBackend: cfg.get("soundBackend", "auto"),
         fireworks: cfg.get("fireworks", true),
         baseXp: cfg.get("leveling.baseXp", 50),
         enableStatusBar: cfg.get("enableStatusBar", true),
         reducedEffects: cfg.get("reducedEffects", false)
       };
-      
+
       // If reduced effects was just enabled, clear all decorations
       if (!oldReducedEffects && settings.reducedEffects) {
         vscode.window.visibleTextEditors.forEach(editor => {
           effects.clearAllDecorations(editor);
         });
       }
-      
+
       xp.setBaseXp(settings.baseXp);
+      void audio.configure(settings.soundBackend).then(() => {
+        if (audio.getAudioBackendState().active !== "webview") {
+          revealedForWebviewFallback = false;
+        }
+      });
       pushState();
       updateStatus();
       // Update panel state (init is sent by PanelViewProvider and includes sound URIs)
@@ -154,24 +174,22 @@ export function activate(context: vscode.ExtensionContext) {
         isInsert && settings.chars
           ? sanitizeLabel(insertedText[0] ?? "")
           : isDelete && settings.chars
-          ? "BACKSPACE"
-          : undefined;
+            ? "BACKSPACE"
+            : undefined;
 
       if (isInsert && settings.blips && !settings.reducedEffects) {
-        if (settings.sound && !revealedForSound) {
-          revealedForSound = true;
-          panelProvider.reveal();
-        }
         effects.showBlip(editor, settings.chars, settings.shake, charLabel);
         pitchIncrease += 1.0;
         if (pitchResetTimer) clearTimeout(pitchResetTimer);
         pitchResetTimer = setTimeout(() => { pitchIncrease = 0; }, PITCH_RESET_MS);
-        // Sound via panel (disabled in reduced effects mode)
         const pitch = 1.0 + Math.min(20, pitchIncrease) * 0.05; // cap growth
-        post({ type: "blip", pitch, enabled: settings.sound && !settings.reducedEffects });
+        playSound({ type: "blip", pitch }, settings.sound && !settings.reducedEffects);
         // XP (always gained, even in reduced effects)
         const leveled = xp.addXp(1);
-        if (leveled && settings.fireworks && !settings.reducedEffects) post({ type: "fireworks", enabled: settings.sound && !settings.reducedEffects });
+        if (leveled && settings.fireworks && !settings.reducedEffects) {
+          playSound({ type: "fireworks" }, settings.sound && !settings.reducedEffects);
+          post({ type: "fireworks", enabled: false });
+        }
         pushState();
         updateStatus();
       } else if (isInsert) {
@@ -181,7 +199,7 @@ export function activate(context: vscode.ExtensionContext) {
         updateStatus();
       } else if (isDelete && settings.explosions && !settings.reducedEffects) {
         effects.showBoom(editor, settings.chars, settings.shake, charLabel);
-        post({ type: "boom", enabled: settings.sound && !settings.reducedEffects });
+        playSound({ type: "boom" }, settings.sound && !settings.reducedEffects);
         pushState();
       }
 
@@ -214,6 +232,17 @@ export function activate(context: vscode.ExtensionContext) {
 
   function post(msg: PanelMessageFromExt) {
     panelProvider.post(msg);
+  }
+
+  function playSound(event: HostSoundEvent, enabled: boolean) {
+    if (!enabled) {
+      return;
+    }
+    if (audio.getAudioBackendState().active === "webview" && !revealedForWebviewFallback) {
+      revealedForWebviewFallback = true;
+      panelProvider.reveal();
+    }
+    audio.play(event);
   }
 
   function pushState() {
