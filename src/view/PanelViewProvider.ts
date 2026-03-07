@@ -1,11 +1,16 @@
 import * as vscode from "vscode";
-import { PanelMessageFromExt, PanelMessageToExt, Settings } from "../types";
+import { AudioBackendState, PanelMessageFromExt, PanelMessageToExt, Settings } from "../types";
 
 export class PanelViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = "ridiculousCoding.panel";
 
   private _view?: vscode.WebviewView;
   private context: vscode.ExtensionContext;
+  private audioBackendState: AudioBackendState = {
+    configured: "auto",
+    active: "webview",
+    note: "Webview audio is active. Click the panel to unlock sound."
+  };
 
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
@@ -19,17 +24,11 @@ export class PanelViewProvider implements vscode.WebviewViewProvider {
       localResourceRoots: [this.context.extensionUri]
     };
 
-  webviewView.webview.html = this.getHtml(webviewView.webview);
+    webviewView.webview.html = this.getHtml(webviewView.webview);
 
     webviewView.webview.onDidReceiveMessage((msg: PanelMessageToExt) => {
       switch (msg.type) {
         case "ready":
-          const soundBase = vscode.Uri.joinPath(this.context.extensionUri, 'media', 'sound');
-          const soundUris = {
-            blip: webviewView.webview.asWebviewUri(vscode.Uri.joinPath(soundBase, 'blip.wav')).toString(),
-            boom: webviewView.webview.asWebviewUri(vscode.Uri.joinPath(soundBase, 'boom.wav')).toString(),
-            fireworks: webviewView.webview.asWebviewUri(vscode.Uri.joinPath(soundBase, 'fireworks.wav')).toString()
-          };
           this.post({
             type: "init",
             settings: this.getSettings(),
@@ -37,7 +36,8 @@ export class PanelViewProvider implements vscode.WebviewViewProvider {
             level: this.context.globalState.get("level", 1),
             xpNext: this.context.globalState.get("xpNextAbs", 100),
             xpLevelStart: this.context.globalState.get("xpLevelStart", 0),
-            soundUris
+            audioBackend: this.audioBackendState,
+            soundUris: this.audioBackendState.active === "webview" ? this.getSoundUris(webviewView.webview) : undefined
           });
           break;
         case "toggle":
@@ -45,6 +45,9 @@ export class PanelViewProvider implements vscode.WebviewViewProvider {
           break;
         case "resetXp":
           vscode.commands.executeCommand("ridiculousCoding.resetXp");
+          break;
+        case "testFireworks":
+          vscode.commands.executeCommand("ridiculousCoding.testFireworks");
           break;
         case "requestState":
           this.post({
@@ -63,6 +66,18 @@ export class PanelViewProvider implements vscode.WebviewViewProvider {
     this._view?.webview.postMessage(message);
   }
 
+  setAudioBackendState(state: AudioBackendState) {
+    this.audioBackendState = state;
+    if (!this._view) {
+      return;
+    }
+    this.post({
+      type: "audioBackend",
+      audioBackend: state,
+      soundUris: state.active === "webview" ? this.getSoundUris(this._view.webview) : undefined
+    });
+  }
+
   reveal() {
     this._view?.show?.(true);
   }
@@ -77,6 +92,7 @@ export class PanelViewProvider implements vscode.WebviewViewProvider {
       shakeAmplitude: cfg.get("shakeAmplitude", 6),
       shakeDecayMs: cfg.get("shakeDecayMs", 120),
       sound: cfg.get("sound", true),
+      soundBackend: cfg.get("soundBackend", "auto"),
       fireworks: cfg.get("fireworks", true),
       baseXp: cfg.get("leveling.baseXp", 50),
       enableStatusBar: cfg.get("enableStatusBar", true),
@@ -93,6 +109,7 @@ export class PanelViewProvider implements vscode.WebviewViewProvider {
       shakeAmplitude: "shakeAmplitude",
       shakeDecayMs: "shakeDecayMs",
       sound: "sound",
+      soundBackend: "soundBackend",
       fireworks: "fireworks",
       baseXp: "leveling.baseXp",
       enableStatusBar: "enableStatusBar",
@@ -166,5 +183,14 @@ export class PanelViewProvider implements vscode.WebviewViewProvider {
   <script nonce="${nonce}" src="${jsUri}"></script>
 </body>
 </html>`;
+  }
+
+  private getSoundUris(webview: vscode.Webview) {
+    const soundBase = vscode.Uri.joinPath(this.context.extensionUri, "media", "sound");
+    return {
+      blip: webview.asWebviewUri(vscode.Uri.joinPath(soundBase, "blip.wav")).toString(),
+      boom: webview.asWebviewUri(vscode.Uri.joinPath(soundBase, "boom.wav")).toString(),
+      fireworks: webview.asWebviewUri(vscode.Uri.joinPath(soundBase, "fireworks.wav")).toString()
+    };
   }
 }

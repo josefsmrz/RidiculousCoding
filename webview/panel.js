@@ -22,11 +22,13 @@
   let actx = null;
   const buffers = { blip: null, boom: null, fireworks: null };
   let audioUnlocked = false;
+  let activeAudioBackend = "webview";
   async function fetchArrayBuffer(url) {
     const res = await fetch(url);
     return await res.arrayBuffer();
   }
   async function preloadSounds(uris) {
+    if (!uris) return;
     try {
       actx = actx || new AudioCtx();
       const entries = Object.entries(uris);
@@ -34,9 +36,10 @@
         const ab = await fetchArrayBuffer(u);
         buffers[k] = await actx.decodeAudioData(ab);
       }
-    } catch {}
+    } catch { }
   }
   async function unlockAudio() {
+    if (activeAudioBackend !== "webview") return;
     if (audioUnlocked) return;
     try {
       actx = actx || new AudioCtx();
@@ -44,13 +47,13 @@
       audioUnlocked = true;
       const n = document.getElementById('soundNotice');
       if (n) n.remove();
-    } catch {}
+    } catch { }
   }
   function playWav(kind, opts = {}) {
     try {
       if (!audioUnlocked || !buffers[kind]) return;
       if (actx && actx.state === 'suspended') {
-        actx.resume().catch(() => {});
+        actx.resume().catch(() => { });
       }
       const src = actx.createBufferSource();
       src.buffer = buffers[kind];
@@ -61,7 +64,7 @@
       gain.gain.value = 0.5;
       src.connect(gain).connect(actx.destination);
       src.start();
-    } catch {}
+    } catch { }
   }
 
   // Fireworks particles on canvas
@@ -118,9 +121,7 @@
 
   els.resetBtn.addEventListener("click", () => vscode.postMessage({ type: "resetXp" }));
   els.testFireworks.addEventListener("click", () => {
-    // Play sound if enabled (same as real fireworks)
-    if (els.sound.checked) playBeep(0.5);
-    fw.start();
+    vscode.postMessage({ type: "testFireworks" });
   });
 
   function setState({ xp, level, xpNext, xpLevelStart = 0 }) {
@@ -130,6 +131,26 @@
     els.xpLabel.textContent = `XP: ${xp} / ${xpNext}`;
     const pct = Math.max(0, Math.min(100, (current / Math.max(1, max)) * 100));
     els.barInner.style.width = `${pct}%`;
+  }
+
+  function configureAudioBackend(msg) {
+    activeAudioBackend = msg.audioBackend.active;
+    const notice = document.getElementById("soundNotice");
+
+    if (msg.audioBackend.active === "webview" && msg.soundUris) {
+      preloadSounds({ blip: msg.soundUris.blip, boom: msg.soundUris.boom, fireworks: msg.soundUris.fireworks });
+      audioUnlocked = false;
+      document.addEventListener("click", unlockAudio, { once: true });
+      document.addEventListener("keydown", unlockAudio, { once: true });
+      if (notice) {
+        notice.textContent = msg.audioBackend.note;
+      }
+      return;
+    }
+
+    if (notice) {
+      notice.remove();
+    }
   }
 
   window.addEventListener("message", e => {
@@ -144,14 +165,14 @@
         els.sound.checked = msg.settings.sound;
         els.fireworks.checked = msg.settings.fireworks;
         els.reducedEffects.checked = msg.settings.reducedEffects;
-  preloadSounds({ blip: msg.soundUris.blip, boom: msg.soundUris.boom, fireworks: msg.soundUris.fireworks });
-  // Unlock audio on first interaction
-  document.addEventListener('click', unlockAudio, { once: true });
-  document.addEventListener('keydown', unlockAudio, { once: true });
+        configureAudioBackend(msg);
         setState(msg);
         break;
       case "state":
         setState(msg);
+        break;
+      case "audioBackend":
+        configureAudioBackend(msg);
         break;
       case "blip":
         if (msg.enabled) playWav('blip', { playbackRate: msg.pitch ?? 1.0 });

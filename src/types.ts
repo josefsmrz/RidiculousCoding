@@ -11,15 +11,41 @@ export type Settings = {
   // @ts-ignore
   shakeDecayMs?: number;
   sound: boolean;
+  soundBackend: SoundBackendSetting;
   fireworks: boolean;
   baseXp: number;
   enableStatusBar: boolean;
   reducedEffects: boolean;
 };
 
+export type SoundBackendSetting = "auto" | "nativeHelper" | "webview";
+
+export type ActiveAudioBackend = "nativeHelper" | "webview";
+
+export type AudioBackendState = {
+  configured: SoundBackendSetting;
+  active: ActiveAudioBackend;
+  note: string;
+};
+
+export type HostSoundEvent =
+  | { type: "blip"; pitch: number }
+  | { type: "boom" }
+  | { type: "fireworks" };
+
 export type PanelMessageFromExt =
-  | { type: "init"; settings: Settings; xp: number; level: number; xpNext: number; xpLevelStart: number; soundUris: { blip: string; boom: string; fireworks: string } }
+  | {
+    type: "init";
+    settings: Settings;
+    xp: number;
+    level: number;
+    xpNext: number;
+    xpLevelStart: number;
+    audioBackend: AudioBackendState;
+    soundUris?: { blip: string; boom: string; fireworks: string };
+  }
   | { type: "state"; xp: number; level: number; xpNext: number; xpLevelStart: number }
+  | { type: "audioBackend"; audioBackend: AudioBackendState; soundUris?: { blip: string; boom: string; fireworks: string } }
   | { type: "blip"; pitch: number; enabled: boolean }
   | { type: "boom"; enabled: boolean }
   | { type: "fireworks"; enabled: boolean };
@@ -28,4 +54,5 @@ export type PanelMessageToExt =
   | { type: "ready" }
   | { type: "toggle"; key: keyof Settings; value: boolean }
   | { type: "resetXp" }
+  | { type: "testFireworks" }
   | { type: "requestState" };
