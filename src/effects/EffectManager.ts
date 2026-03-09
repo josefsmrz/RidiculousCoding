@@ -17,6 +17,7 @@ interface EditorState {
   shakeTimer?: ReturnType<typeof setTimeout>;
   activeShakeDecoKey?: string;
   shakeEndAt?: number;
+  shakeStartAt?: number;
 }
 
 export class EffectManager {
@@ -505,9 +506,12 @@ export class EffectManager {
     const cfg = vscode.workspace.getConfiguration('ridiculousCoding');
     const decayMs = Math.max(20, cfg.get<number>('shakeDecayMs', 120));
     const maxExtend = Math.max(extendMs, decayMs);
-    // Cap total shake duration so continuous Copilot edits don't keep the shake alive
-    // indefinitely, which would flood the renderer with setDecorations IPC messages.
-    const cap = now + EffectManager.MAX_SHAKE_TOTAL_MS;
+    // Track when this shake sequence started so the cap is anchored to the start,
+    // not to the current call (which would slide forward with every invocation).
+    if (!state.shakeTimer) {
+      state.shakeStartAt = now;
+    }
+    const cap = (state.shakeStartAt ?? now) + EffectManager.MAX_SHAKE_TOTAL_MS;
     state.shakeEndAt = Math.min(Math.max(state.shakeEndAt ?? 0, now + maxExtend), cap);
 
     // Fixed amplitude for uniform magnitude in all directions
@@ -559,6 +563,7 @@ export class EffectManager {
           state.activeShakeDecoKey = undefined;
         }
         state.shakeTimer = undefined;
+        state.shakeStartAt = undefined;
         return;
       }
 
