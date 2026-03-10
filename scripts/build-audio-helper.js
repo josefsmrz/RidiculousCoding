@@ -12,7 +12,7 @@ const SUPPORTED_TARGETS = {
 };
 
 const RUST_TARGETS = {
-    "win32-x64": "x86_64-pc-windows-gnu",
+    "win32-x64": "x86_64-pc-windows-msvc",
     "win32-arm64": "aarch64-pc-windows-msvc",
     "linux-x64": "x86_64-unknown-linux-gnu",
     "linux-arm64": "aarch64-unknown-linux-gnu",
@@ -103,7 +103,7 @@ function getRustTarget(target) {
 }
 
 function getCargoToolchain(target) {
-    if (target !== "win32-x64" && target !== "win32-arm64") {
+    if (target !== "win32-arm64") {
         return undefined;
     }
 
