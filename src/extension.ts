@@ -156,6 +156,9 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.workspace.onDidChangeTextDocument(evt => {
+      // Skip undo/redo — they are not user-typed input.
+      if (evt.reason !== undefined) return;
+
       const editor = vscode.window.activeTextEditor;
       if (!editor || evt.document !== editor.document) return;
 
@@ -240,7 +243,16 @@ export function activate(context: vscode.ExtensionContext) {
     }
     if (audio.getAudioBackendState().active === "webview" && !revealedForWebviewFallback) {
       revealedForWebviewFallback = true;
-      panelProvider.reveal();
+      // Show a notification instead of forcibly revealing the panel, to avoid
+      // any focus disruption (e.g. when Copilot Chat has focus).
+      vscode.window.showInformationMessage(
+        "Ridiculous Coding: click the RC panel in the Explorer sidebar to enable sound.",
+        "Open Panel"
+      ).then(choice => {
+        if (choice === "Open Panel") {
+          panelProvider.reveal();
+        }
+      });
     }
     audio.play(event);
   }

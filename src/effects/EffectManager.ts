@@ -17,6 +17,7 @@ interface EditorState {
   shakeTimer?: ReturnType<typeof setTimeout>;
   activeShakeDecoKey?: string;
   shakeEndAt?: number;
+  shakeStartAt?: number;
 }
 
 export class EffectManager {
@@ -493,13 +494,25 @@ export class EffectManager {
     }, ttl);
   }
 
+  // Maximum total shake duration regardless of how many triggers occur (e.g. from
+  // Copilot streaming edits). Prevents continuous high-frequency setDecorations IPC
+  // calls that can interfere with keyboard event routing in other webviews (Copilot Chat).
+  private static readonly MAX_SHAKE_TOTAL_MS = 400;
+  private static readonly SHAKE_FRAME_MS = 50; // 20fps instead of 60fps
+
   private shake(editor: vscode.TextEditor, extendMs: number) {
     const state = this.getEditorState(editor);
     const now = Date.now();
     const cfg = vscode.workspace.getConfiguration('ridiculousCoding');
     const decayMs = Math.max(20, cfg.get<number>('shakeDecayMs', 120));
     const maxExtend = Math.max(extendMs, decayMs);
-    state.shakeEndAt = Math.max(state.shakeEndAt ?? 0, now + maxExtend);
+    // Track when this shake sequence started so the cap is anchored to the start,
+    // not to the current call (which would slide forward with every invocation).
+    if (!state.shakeTimer) {
+      state.shakeStartAt = now;
+    }
+    const cap = (state.shakeStartAt ?? now) + EffectManager.MAX_SHAKE_TOTAL_MS;
+    state.shakeEndAt = Math.min(Math.max(state.shakeEndAt ?? 0, now + maxExtend), cap);
 
     // Fixed amplitude for uniform magnitude in all directions
     const amplitudePx = Math.max(0, Math.min(32, cfg.get<number>('shakeAmplitude', 6)));
@@ -550,6 +563,7 @@ export class EffectManager {
           state.activeShakeDecoKey = undefined;
         }
         state.shakeTimer = undefined;
+        state.shakeStartAt = undefined;
         return;
       }
 
@@ -569,7 +583,7 @@ export class EffectManager {
       editor.setDecorations(deco, ranges);
       state.activeShakeDecoKey = key;
 
-      state.shakeTimer = setTimeout(applyShake, 16);
+      state.shakeTimer = setTimeout(applyShake, EffectManager.SHAKE_FRAME_MS);
     };
 
     if (!state.shakeTimer) {
