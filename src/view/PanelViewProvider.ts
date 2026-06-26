@@ -1,5 +1,10 @@
 import * as vscode from "vscode";
-import { AudioBackendState, PanelMessageFromExt, PanelMessageToExt, Settings } from "../types";
+import {
+  AudioBackendState,
+  PanelMessageFromExt,
+  PanelMessageToExt,
+  Settings,
+} from "../types";
 
 export class PanelViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = "ridiculousCoding.panel";
@@ -9,7 +14,7 @@ export class PanelViewProvider implements vscode.WebviewViewProvider {
   private audioBackendState: AudioBackendState = {
     configured: "auto",
     active: "webview",
-    note: "Webview audio is active. Click the panel to unlock sound."
+    note: "Webview audio is active. Click the panel to unlock sound.",
   };
 
   constructor(context: vscode.ExtensionContext) {
@@ -21,7 +26,7 @@ export class PanelViewProvider implements vscode.WebviewViewProvider {
 
     webviewView.webview.options = {
       enableScripts: true,
-      localResourceRoots: [this.context.extensionUri]
+      localResourceRoots: [this.context.extensionUri],
     };
 
     webviewView.webview.html = this.getHtml(webviewView.webview);
@@ -37,7 +42,10 @@ export class PanelViewProvider implements vscode.WebviewViewProvider {
             xpNext: this.context.globalState.get("xpNextAbs", 100),
             xpLevelStart: this.context.globalState.get("xpLevelStart", 0),
             audioBackend: this.audioBackendState,
-            soundUris: this.audioBackendState.active === "webview" ? this.getSoundUris(webviewView.webview) : undefined
+            soundUris:
+              this.audioBackendState.active === "webview"
+                ? this.getSoundUris(webviewView.webview)
+                : undefined,
           });
           break;
         case "toggle":
@@ -55,7 +63,7 @@ export class PanelViewProvider implements vscode.WebviewViewProvider {
             xp: this.context.globalState.get("xp", 0),
             level: this.context.globalState.get("level", 1),
             xpNext: this.context.globalState.get("xpNextAbs", 100),
-            xpLevelStart: this.context.globalState.get("xpLevelStart", 0)
+            xpLevelStart: this.context.globalState.get("xpLevelStart", 0),
           });
           break;
       }
@@ -74,7 +82,10 @@ export class PanelViewProvider implements vscode.WebviewViewProvider {
     this.post({
       type: "audioBackend",
       audioBackend: state,
-      soundUris: state.active === "webview" ? this.getSoundUris(this._view.webview) : undefined
+      soundUris:
+        state.active === "webview"
+          ? this.getSoundUris(this._view.webview)
+          : undefined,
     });
   }
 
@@ -94,13 +105,17 @@ export class PanelViewProvider implements vscode.WebviewViewProvider {
       sound: cfg.get("sound", true),
       soundBackend: cfg.get("soundBackend", "auto"),
       fireworks: cfg.get("fireworks", true),
+      navigationEffects: cfg.get("navigationEffects", true),
       baseXp: cfg.get("leveling.baseXp", 50),
       enableStatusBar: cfg.get("enableStatusBar", true),
-      reducedEffects: cfg.get("reducedEffects", false)
+      reducedEffects: cfg.get("reducedEffects", false),
     };
   }
 
-  private async updateSetting<K extends keyof Settings>(key: K, value: Settings[K]) {
+  private async updateSetting<K extends keyof Settings>(
+    key: K,
+    value: Settings[K],
+  ) {
     const map: Record<string, string> = {
       explosions: "explosions",
       blips: "blips",
@@ -111,25 +126,33 @@ export class PanelViewProvider implements vscode.WebviewViewProvider {
       sound: "sound",
       soundBackend: "soundBackend",
       fireworks: "fireworks",
+      navigationEffects: "navigationEffects",
       baseXp: "leveling.baseXp",
       enableStatusBar: "enableStatusBar",
-      reducedEffects: "reducedEffects"
+      reducedEffects: "reducedEffects",
     };
     const configKey = map[key];
     if (!configKey) return;
-    await vscode.workspace.getConfiguration("ridiculousCoding").update(configKey, value, true);
+    await vscode.workspace
+      .getConfiguration("ridiculousCoding")
+      .update(configKey, value, true);
   }
 
   private getHtml(webview: vscode.Webview): string {
     const nonce = Math.random().toString(36).slice(2);
     const cssUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this.context.extensionUri, "webview", "panel.css")
+      vscode.Uri.joinPath(this.context.extensionUri, "webview", "panel.css"),
     );
     const jsUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this.context.extensionUri, "webview", "panel.js")
+      vscode.Uri.joinPath(this.context.extensionUri, "webview", "panel.js"),
     );
     const logoUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this.context.extensionUri, "media", "icons", "icon.svg")
+      vscode.Uri.joinPath(
+        this.context.extensionUri,
+        "media",
+        "icons",
+        "icon.svg",
+      ),
     );
 
     return `<!DOCTYPE html>
@@ -161,6 +184,7 @@ export class PanelViewProvider implements vscode.WebviewViewProvider {
         <label class="toggle-pill"><input id="shake" type="checkbox"><span>Shake</span></label>
         <label class="toggle-pill"><input id="sound" type="checkbox"><span>Sound</span></label>
         <label class="toggle-pill"><input id="fireworks" type="checkbox"><span>Fireworks</span></label>
+        <label class="toggle-pill"><input id="navigationEffects" type="checkbox"><span>Navigation effects</span></label>
         <label class="toggle-pill"><input id="reducedEffects" type="checkbox"><span>Reduced Effects</span></label>
       </div>
     </section>
@@ -186,11 +210,21 @@ export class PanelViewProvider implements vscode.WebviewViewProvider {
   }
 
   private getSoundUris(webview: vscode.Webview) {
-    const soundBase = vscode.Uri.joinPath(this.context.extensionUri, "media", "sound");
+    const soundBase = vscode.Uri.joinPath(
+      this.context.extensionUri,
+      "media",
+      "sound",
+    );
     return {
-      blip: webview.asWebviewUri(vscode.Uri.joinPath(soundBase, "blip.wav")).toString(),
-      boom: webview.asWebviewUri(vscode.Uri.joinPath(soundBase, "boom.wav")).toString(),
-      fireworks: webview.asWebviewUri(vscode.Uri.joinPath(soundBase, "fireworks.wav")).toString()
+      blip: webview
+        .asWebviewUri(vscode.Uri.joinPath(soundBase, "blip.wav"))
+        .toString(),
+      boom: webview
+        .asWebviewUri(vscode.Uri.joinPath(soundBase, "boom.wav"))
+        .toString(),
+      fireworks: webview
+        .asWebviewUri(vscode.Uri.joinPath(soundBase, "fireworks.wav"))
+        .toString(),
     };
   }
 }

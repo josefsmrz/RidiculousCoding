@@ -8,13 +8,14 @@
     shake: document.getElementById("shake"),
     sound: document.getElementById("sound"),
     fireworks: document.getElementById("fireworks"),
+    navigationEffects: document.getElementById("navigationEffects"),
     reducedEffects: document.getElementById("reducedEffects"),
     levelLabel: document.getElementById("levelLabel"),
     xpLabel: document.getElementById("xpLabel"),
     barInner: document.getElementById("barInner"),
     resetBtn: document.getElementById("resetBtn"),
     testFireworks: document.getElementById("testFireworks"),
-    fwCanvas: document.getElementById("fwCanvas")
+    fwCanvas: document.getElementById("fwCanvas"),
   };
 
   // WebAudio engine using decoded WAV buffers
@@ -36,35 +37,38 @@
         const ab = await fetchArrayBuffer(u);
         buffers[k] = await actx.decodeAudioData(ab);
       }
-    } catch { }
+    } catch {}
   }
   async function unlockAudio() {
     if (activeAudioBackend !== "webview") return;
     if (audioUnlocked) return;
     try {
       actx = actx || new AudioCtx();
-      if (actx.state === 'suspended') await actx.resume();
+      if (actx.state === "suspended") await actx.resume();
       audioUnlocked = true;
-      const n = document.getElementById('soundNotice');
+      const n = document.getElementById("soundNotice");
       if (n) n.remove();
-    } catch { }
+    } catch {}
   }
   function playWav(kind, opts = {}) {
     try {
       if (!audioUnlocked || !buffers[kind]) return;
-      if (actx && actx.state === 'suspended') {
-        actx.resume().catch(() => { });
+      if (actx && actx.state === "suspended") {
+        actx.resume().catch(() => {});
       }
       const src = actx.createBufferSource();
       src.buffer = buffers[kind];
-      if (opts.playbackRate && typeof opts.playbackRate === 'number') {
-        src.playbackRate.value = Math.max(0.5, Math.min(3.0, opts.playbackRate));
+      if (opts.playbackRate && typeof opts.playbackRate === "number") {
+        src.playbackRate.value = Math.max(
+          0.5,
+          Math.min(3.0, opts.playbackRate),
+        );
       }
       const gain = actx.createGain();
       gain.gain.value = 0.5;
       src.connect(gain).connect(actx.destination);
       src.start();
-    } catch { }
+    } catch {}
   }
 
   // Fireworks particles on canvas
@@ -84,7 +88,7 @@
           vx: (Math.random() - 0.5) * 6,
           vy: -Math.random() * 8 - 4,
           life: 60 + Math.random() * 30,
-          color: `hsl(${Math.random() * 360}, 90%, 60%)`
+          color: `hsl(${Math.random() * 360}, 90%, 60%)`,
         });
       }
       this.running = true;
@@ -99,7 +103,7 @@
       if (!this.running) return;
       const ctx = els.fwCanvas.getContext("2d");
       ctx.clearRect(0, 0, els.fwCanvas.width, els.fwCanvas.height);
-      this.particles.forEach(p => {
+      this.particles.forEach((p) => {
         p.vy += 0.15;
         p.x += p.vx;
         p.y += p.vy;
@@ -107,19 +111,32 @@
         ctx.fillStyle = p.color;
         ctx.fillRect(p.x, p.y, 3, 3);
       });
-      this.particles = this.particles.filter(p => p.life > 0 && p.y < els.fwCanvas.height);
+      this.particles = this.particles.filter(
+        (p) => p.life > 0 && p.y < els.fwCanvas.height,
+      );
       requestAnimationFrame(() => this.loop());
-    }
+    },
   };
 
   // Wire toggles
-  ["explosions", "blips", "chars", "shake", "sound", "fireworks", "reducedEffects"].forEach(key => {
+  [
+    "explosions",
+    "blips",
+    "chars",
+    "shake",
+    "sound",
+    "fireworks",
+    "navigationEffects",
+    "reducedEffects",
+  ].forEach((key) => {
     els[key].addEventListener("change", () => {
       vscode.postMessage({ type: "toggle", key, value: els[key].checked });
     });
   });
 
-  els.resetBtn.addEventListener("click", () => vscode.postMessage({ type: "resetXp" }));
+  els.resetBtn.addEventListener("click", () =>
+    vscode.postMessage({ type: "resetXp" }),
+  );
   els.testFireworks.addEventListener("click", () => {
     vscode.postMessage({ type: "testFireworks" });
   });
@@ -138,7 +155,11 @@
     const notice = document.getElementById("soundNotice");
 
     if (msg.audioBackend.active === "webview" && msg.soundUris) {
-      preloadSounds({ blip: msg.soundUris.blip, boom: msg.soundUris.boom, fireworks: msg.soundUris.fireworks });
+      preloadSounds({
+        blip: msg.soundUris.blip,
+        boom: msg.soundUris.boom,
+        fireworks: msg.soundUris.fireworks,
+      });
       audioUnlocked = false;
       document.addEventListener("click", unlockAudio, { once: true });
       document.addEventListener("keydown", unlockAudio, { once: true });
@@ -153,7 +174,7 @@
     }
   }
 
-  window.addEventListener("message", e => {
+  window.addEventListener("message", (e) => {
     const msg = e.data;
     switch (msg.type) {
       case "init":
@@ -175,21 +196,21 @@
         configureAudioBackend(msg);
         break;
       case "blip":
-        if (msg.enabled) playWav('blip', { playbackRate: msg.pitch ?? 1.0 });
+        if (msg.enabled) playWav("blip", { playbackRate: msg.pitch ?? 1.0 });
         break;
       case "boom":
-        if (msg.enabled) playWav('boom');
+        if (msg.enabled) playWav("boom");
         break;
       case "fireworks":
-        if (msg.enabled) playWav('fireworks');
+        if (msg.enabled) playWav("fireworks");
         fw.start();
         break;
     }
   });
 
   // Wait for DOM to be ready before sending ready message
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => {
       vscode.postMessage({ type: "ready" });
     });
   } else {

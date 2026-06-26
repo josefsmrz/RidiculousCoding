@@ -81,6 +81,11 @@
           "default": true,
           "description": "Celebrate level-ups with fireworks in the panel."
         },
+        "ridiculousCoding.navigationEffects": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show newline effects when moving between lines using navigation keys."
+        },
         "ridiculousCoding.leveling.baseXp": {
           "type": "number",
           "default": 50,

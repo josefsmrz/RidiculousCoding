@@ -13,6 +13,7 @@ export type Settings = {
   sound: boolean;
   soundBackend: SoundBackendSetting;
   fireworks: boolean;
+  navigationEffects: boolean;
   baseXp: number;
   enableStatusBar: boolean;
   reducedEffects: boolean;
@@ -35,17 +36,27 @@ export type HostSoundEvent =
 
 export type PanelMessageFromExt =
   | {
-    type: "init";
-    settings: Settings;
-    xp: number;
-    level: number;
-    xpNext: number;
-    xpLevelStart: number;
-    audioBackend: AudioBackendState;
-    soundUris?: { blip: string; boom: string; fireworks: string };
-  }
-  | { type: "state"; xp: number; level: number; xpNext: number; xpLevelStart: number }
-  | { type: "audioBackend"; audioBackend: AudioBackendState; soundUris?: { blip: string; boom: string; fireworks: string } }
+      type: "init";
+      settings: Settings;
+      xp: number;
+      level: number;
+      xpNext: number;
+      xpLevelStart: number;
+      audioBackend: AudioBackendState;
+      soundUris?: { blip: string; boom: string; fireworks: string };
+    }
+  | {
+      type: "state";
+      xp: number;
+      level: number;
+      xpNext: number;
+      xpLevelStart: number;
+    }
+  | {
+      type: "audioBackend";
+      audioBackend: AudioBackendState;
+      soundUris?: { blip: string; boom: string; fireworks: string };
+    }
   | { type: "blip"; pitch: number; enabled: boolean }
   | { type: "boom"; enabled: boolean }
   | { type: "fireworks"; enabled: boolean };

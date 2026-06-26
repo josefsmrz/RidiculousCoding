@@ -1,9 +1,9 @@
-# 🚀 Ridiculous Coding - Level Up Your VS Code! 
+# 🚀 Ridiculous Coding - Level Up Your VS Code!
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![VS Code](https://img.shields.io/badge/VS%20Code-1.84.0+-blue.svg)](https://code.visualstudio.com/)
 
-**Transform your coding into an epic adventure!** Turn every keystroke into a celebration with explosive visual effects, satisfying sound feedback, and an addictive XP leveling system. 
+**Transform your coding into an epic adventure!** Turn every keystroke into a celebration with explosive visual effects, satisfying sound feedback, and an addictive XP leveling system.
 
 ## ✨ Why You'll Love This Extension
 
@@ -12,31 +12,35 @@
 🔊 **Satisfying Sounds** - Delightful audio feedback that makes typing addictive  
 ⚡ **Instant Gratification** - See your progress in real-time with a beautiful status bar  
 🎯 **Stay Motivated** - Turn mundane coding tasks into engaging challenges  
-♿ **Accessibility First** - Reduced effects mode for users who prefer minimal distractions  
+♿ **Accessibility First** - Reduced effects mode for users who prefer minimal distractions
 
 ## 🎬 Features That Make Coding Ridiculous
 
 ### 🎨 **Visual Effects**
+
 - **Blips** - Colorful animations when typing with optional character labels
 - **Booms** - Dramatic explosions when deleting
 - **Screen Shake** - Gentle editor jitter that responds to your typing intensity
 - **Newline Animations** - Special effects for line breaks
 - **Fireworks** - Celebration animations when you level up!
 
-### 🎵 **Audio Experience** 
+### 🎵 **Audio Experience**
+
 - **Typing Sounds** - Satisfying blips with pitch variation based on typing speed
 - **Deletion Booms** - Powerful sound effects for backspace/delete
 - **Level-up Fanfare** - Triumphant audio when reaching new levels
 - **Selectable Audio Backend** - Use webview audio or a local helper backend as implementation evolves
 
 ### 📊 **Progression System**
+
 - **XP Tracking** - Gain experience points for every character typed
-- **Level System** - Progressive leveling with increasing XP requirements  
+- **Level System** - Progressive leveling with increasing XP requirements
 - **Status Bar Display** - Always see your current level and progress
 - **Persistent Progress** - Your XP and level are saved between sessions
 - **Reset Option** - Start fresh anytime with the reset command
 
 ### ⚙️ **Customization**
+
 - **Toggle Everything** - Enable/disable any effect independently
 - **Accessibility Mode** - Reduced effects for distraction-free coding
 - **Configurable Settings** - Adjust shake intensity, sound volume, XP rates
@@ -45,6 +49,7 @@
 ## 🚀 Quick Start
 
 ### Installation
+
 1. **From VS Code Marketplace** (Coming Soon!)
    - Search "Ridiculous Coding" in Extensions
    - Click Install
@@ -60,37 +65,41 @@
    ```
 
 ### First Steps
+
 1. Open VS Code and look for the 🚀 rocket icon in your status bar
-2. Find "Ridiculous Coding" panel in the Explorer sidebar  
+2. Find "Ridiculous Coding" panel in the Explorer sidebar
 3. **Start typing and watch the magic happen!**
 4. Customize effects in the panel or VS Code settings
 
 ## 🎯 Perfect For
 
 - **New Developers** - Make learning to code more engaging and fun
-- **Streamers & Content Creators** - Add visual flair to coding streams  
+- **Streamers & Content Creators** - Add visual flair to coding streams
 - **Team Building** - Gamify coding sessions and challenges
 - **Anyone Who Loves Fun** - Because coding should be enjoyable!
 
 ## ⚙️ Settings & Commands
 
 ### Available Settings
+
 All settings can be found in VS Code Settings → Extensions → Ridiculous Coding:
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `ridiculousCoding.explosions` | `true` | Show 'boom' effects when deleting |
-| `ridiculousCoding.blips` | `true` | Show 'blip' effects when typing |
-| `ridiculousCoding.chars` | `true` | Display character labels with effects |
-| `ridiculousCoding.shake` | `true` | Enable screen shake effects |
-| `ridiculousCoding.sound` | `true` | Play audio feedback |
-| `ridiculousCoding.soundBackend` | `auto` | Select audio backend. Native/helper audio is intended for local desktop VS Code sessions only |
-| `ridiculousCoding.fireworks` | `true` | Celebrate level-ups with fireworks |
-| `ridiculousCoding.enableStatusBar` | `true` | Show XP/Level in status bar |
-| `ridiculousCoding.leveling.baseXp` | `50` | Base XP for leveling calculations |
-| `ridiculousCoding.reducedEffects` | `false` | **Accessibility mode** - Disable effects for distraction-free coding |
+| Setting                              | Default | Description                                                                                   |
+| ------------------------------------ | ------- | --------------------------------------------------------------------------------------------- |
+| `ridiculousCoding.explosions`        | `true`  | Show 'boom' effects when deleting                                                             |
+| `ridiculousCoding.blips`             | `true`  | Show 'blip' effects when typing                                                               |
+| `ridiculousCoding.chars`             | `true`  | Display character labels with effects                                                         |
+| `ridiculousCoding.shake`             | `true`  | Enable screen shake effects                                                                   |
+| `ridiculousCoding.sound`             | `true`  | Play audio feedback                                                                           |
+| `ridiculousCoding.soundBackend`      | `auto`  | Select audio backend. Native/helper audio is intended for local desktop VS Code sessions only |
+| `ridiculousCoding.fireworks`         | `true`  | Celebrate level-ups with fireworks                                                            |
+| `ridiculousCoding.navigationEffects` | `true`  | Show newline effects when moving between lines using navigation keys                          |
+| `ridiculousCoding.enableStatusBar`   | `true`  | Show XP/Level in status bar                                                                   |
+| `ridiculousCoding.leveling.baseXp`   | `50`    | Base XP for leveling calculations                                                             |
+| `ridiculousCoding.reducedEffects`    | `false` | **Accessibility mode** - Disable effects for distraction-free coding                          |
 
 ### Quick Commands
+
 - **Ridiculous Coding: Show Panel** - Open the control panel
 - **Ridiculous Coding: Reset XP** - Start your progression over
 - **Ridiculous Coding: Toggle [Effect]** - Quickly enable/disable specific effects
@@ -98,12 +107,14 @@ All settings can be found in VS Code Settings → Extensions → Ridiculous Codi
 ## ♿ Accessibility
 
 We believe coding should be fun for everyone! Enable **Reduced Effects Mode** via:
+
 - The settings panel toggle
 - VS Code Settings: `ridiculousCoding.reducedEffects: true`
 
 When enabled, this mode:
+
 - ✅ Keeps XP progression working normally
-- ❌ Disables all visual decorations and animations  
+- ❌ Disables all visual decorations and animations
 - ❌ Mutes all sound effects
 - ❌ Removes screen shake
 
@@ -112,6 +123,7 @@ When enabled, this mode:
 Want to contribute or run this locally?
 
 ### Setup
+
 ```bash
 # Clone the repository
 git clone https://github.com/merenut/RediculousCoding
@@ -133,11 +145,13 @@ code .
 Native/helper audio is intended for local desktop VS Code sessions only.
 
 ### Helper Targets
+
 - `npm run build:audio-helper` builds the helper for the current host platform.
 - `npm run build:audio-helper:win32-x64`, `npm run build:audio-helper:linux-x64`, and `npm run build:audio-helper:darwin-x64` are the primary target scripts for packaging on native CI runners.
 - ARM64 targets are wired into the build script as `win32-arm64`, `linux-arm64`, and `darwin-arm64`, but they still require matching toolchains and runner support before they should be considered release-ready.
 
 ### Architecture
+
 - **Extension Host** (`src/extension.ts`) - Main extension logic
 - **XP Service** (`src/xp/XPService.ts`) - Handles leveling and progression
 - **Effect Manager** (`src/effects/EffectManager.ts`) - Visual effects and animations
@@ -156,7 +170,7 @@ This VS Code extension lovingly recreates and expands upon the original concept:
 ## 📝 Technical Notes
 
 - **Performance Optimized** - Effects are rate-limited and memory-managed
-- **Multi-Editor Support** - Works independently across multiple open editors  
+- **Multi-Editor Support** - Works independently across multiple open editors
 - **Hybrid Audio Rollout** - Native/helper audio targets local desktop sessions, with webview audio as fallback
 - **Cross-Platform** - Works on Windows, macOS, and Linux
 - **VS Code API** - Uses official VS Code decoration and webview APIs
