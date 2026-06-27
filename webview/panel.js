@@ -24,6 +24,12 @@
   const buffers = { blip: null, boom: null, fireworks: null };
   let audioUnlocked = false;
   let activeAudioBackend = "webview";
+  function setSoundNotice(text, visible) {
+    const notice = document.getElementById("soundNotice");
+    if (!notice) return;
+    if (text) notice.textContent = text;
+    notice.classList.toggle("hidden", !visible);
+  }
   async function fetchArrayBuffer(url) {
     const res = await fetch(url);
     return await res.arrayBuffer();
@@ -46,8 +52,7 @@
       actx = actx || new AudioCtx();
       if (actx.state === "suspended") await actx.resume();
       audioUnlocked = true;
-      const n = document.getElementById("soundNotice");
-      if (n) n.remove();
+      setSoundNotice(undefined, false);
     } catch {}
   }
   function playWav(kind, opts = {}) {
@@ -152,7 +157,6 @@
 
   function configureAudioBackend(msg) {
     activeAudioBackend = msg.audioBackend.active;
-    const notice = document.getElementById("soundNotice");
 
     if (msg.audioBackend.active === "webview" && msg.soundUris) {
       preloadSounds({
@@ -163,31 +167,34 @@
       audioUnlocked = false;
       document.addEventListener("click", unlockAudio, { once: true });
       document.addEventListener("keydown", unlockAudio, { once: true });
-      if (notice) {
-        notice.textContent = msg.audioBackend.note;
-      }
+      setSoundNotice(msg.audioBackend.note, true);
       return;
     }
 
-    if (notice) {
-      notice.remove();
-    }
+    setSoundNotice(undefined, false);
+  }
+
+  function applySettings(settings) {
+    els.explosions.checked = settings.explosions;
+    els.blips.checked = settings.blips;
+    els.chars.checked = settings.chars;
+    els.shake.checked = settings.shake;
+    els.sound.checked = settings.sound;
+    els.fireworks.checked = settings.fireworks;
+    els.navigationEffects.checked = settings.navigationEffects;
+    els.reducedEffects.checked = settings.reducedEffects;
   }
 
   window.addEventListener("message", (e) => {
     const msg = e.data;
     switch (msg.type) {
       case "init":
-        // Settings
-        els.explosions.checked = msg.settings.explosions;
-        els.blips.checked = msg.settings.blips;
-        els.chars.checked = msg.settings.chars;
-        els.shake.checked = msg.settings.shake;
-        els.sound.checked = msg.settings.sound;
-        els.fireworks.checked = msg.settings.fireworks;
-        els.reducedEffects.checked = msg.settings.reducedEffects;
+        applySettings(msg.settings);
         configureAudioBackend(msg);
         setState(msg);
+        break;
+      case "settings":
+        applySettings(msg.settings);
         break;
       case "state":
         setState(msg);

@@ -5,10 +5,7 @@ export type Settings = {
   shake: boolean;
   // UI toggles don’t expose amplitude/decay for now; still include for typing
   // and message payload completeness if needed later
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
   shakeAmplitude?: number;
-  // @ts-ignore
   shakeDecayMs?: number;
   sound: boolean;
   soundBackend: SoundBackendSetting;
@@ -51,6 +48,10 @@ export type PanelMessageFromExt =
       level: number;
       xpNext: number;
       xpLevelStart: number;
+    }
+  | {
+      type: "settings";
+      settings: Settings;
     }
   | {
       type: "audioBackend";

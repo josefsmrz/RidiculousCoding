@@ -28,6 +28,7 @@ export function activate(context: vscode.ExtensionContext) {
   const panelProvider = new PanelViewProvider(context);
   const audio = new AudioService(context, panelProvider);
   let lastLineByEditor = new WeakMap<vscode.TextEditor, number>();
+  context.subscriptions.push(effects);
   context.subscriptions.push(audio);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
@@ -110,23 +111,28 @@ export function activate(context: vscode.ExtensionContext) {
     ),
   );
 
-  function toggle<K extends keyof Settings>(key: K) {
-    const map: Record<string, string> = {
+  type BooleanSettingKey = {
+    [K in keyof Settings]-?: Settings[K] extends boolean | undefined
+      ? K
+      : never;
+  }[keyof Settings];
+
+  function toggle<K extends BooleanSettingKey>(key: K) {
+    const map: Record<BooleanSettingKey, string> = {
       explosions: "explosions",
       blips: "blips",
       chars: "chars",
       shake: "shake",
       sound: "sound",
-      soundBackend: "soundBackend",
       fireworks: "fireworks",
-      baseXp: "leveling.baseXp",
+      navigationEffects: "navigationEffects",
       enableStatusBar: "enableStatusBar",
       reducedEffects: "reducedEffects",
     };
     const configKey = map[key];
     if (!configKey) return;
     const cfg = vscode.workspace.getConfiguration("ridiculousCoding");
-    const newVal = !(settings[key] as any as boolean);
+    const newVal = !settings[key];
     cfg.update(configKey, newVal, true);
   }
 
@@ -166,15 +172,8 @@ export function activate(context: vscode.ExtensionContext) {
         }
       });
       pushState();
+      post({ type: "settings", settings });
       updateStatus();
-      // Update panel state (init is sent by PanelViewProvider and includes sound URIs)
-      post({
-        type: "state",
-        xp: xp.xp,
-        level: xp.level,
-        xpNext: xp.xpNextAbs,
-        xpLevelStart: xp.xpStartOfLevel,
-      });
     }),
   );
 
@@ -182,6 +181,9 @@ export function activate(context: vscode.ExtensionContext) {
   let pitchIncrease = 0;
   let pitchResetTimer: NodeJS.Timeout | undefined;
   const PITCH_RESET_MS = 180; // reset a short time after typing stops
+
+  const lastNewlineAt = new WeakMap<vscode.TextEditor, number>();
+  const NEWLINE_NAV_IGNORE_MS = 250;
 
   // Event handling: typing, deleting, newline
   context.subscriptions.push(
@@ -202,26 +204,36 @@ export function activate(context: vscode.ExtensionContext) {
       const isDelete = !isInsert && removedChars > 0;
 
       const caret = editor.selection.active;
-      // Character label from inserted text (first char) or delete symbol
+      const hasNewlineInsert = insertedText.includes("\n");
       const charLabel =
-        isInsert && settings.chars
-          ? sanitizeLabel(insertedText[0] ?? "")
-          : isDelete && settings.chars
-            ? "BACKSPACE"
-            : undefined;
+        isInsert && settings.chars ? sanitizeLabel(insertedText) : undefined;
 
-      if (isInsert && settings.blips && !settings.reducedEffects) {
-        effects.showBlip(editor, settings.chars, settings.shake, charLabel);
-        pitchIncrease += 1.0;
-        if (pitchResetTimer) clearTimeout(pitchResetTimer);
-        pitchResetTimer = setTimeout(() => {
-          pitchIncrease = 0;
-        }, PITCH_RESET_MS);
-        const pitch = 1.0 + Math.min(20, pitchIncrease) * 0.05; // cap growth
-        playSound(
-          { type: "blip", pitch },
-          settings.sound && !settings.reducedEffects,
-        );
+      if (isInsert && !hasNewlineInsert && !settings.reducedEffects) {
+        if (settings.blips) {
+          effects.showBlip(editor, settings.chars, false, charLabel);
+        } else if (settings.chars && charLabel) {
+          effects.showCharsOnly(editor, charLabel);
+        }
+
+        if (settings.shake) {
+          effects.showShake(editor, 120);
+        }
+
+        if (settings.sound) {
+          playSound(
+            {
+              type: "blip",
+              pitch: 1.0 + Math.min(20, pitchIncrease + 1.0) * 0.05,
+            },
+            true,
+          );
+          pitchIncrease += 1.0;
+          if (pitchResetTimer) clearTimeout(pitchResetTimer);
+          pitchResetTimer = setTimeout(() => {
+            pitchIncrease = 0;
+          }, PITCH_RESET_MS);
+        }
+
         // XP (always gained, even in reduced effects)
         const leveled = xp.addXp(1);
         if (leveled && settings.fireworks && !settings.reducedEffects) {
@@ -238,19 +250,30 @@ export function activate(context: vscode.ExtensionContext) {
         const leveled = xp.addXp(1);
         pushState();
         updateStatus();
-      } else if (isDelete && settings.explosions && !settings.reducedEffects) {
-        effects.showBoom(editor, settings.chars, settings.shake, charLabel);
-        playSound({ type: "boom" }, settings.sound && !settings.reducedEffects);
+      } else if (isDelete && !settings.reducedEffects) {
+        if (settings.explosions) {
+          effects.showBoom(editor, false, false);
+        }
+
+        if (settings.shake) {
+          effects.showShake(editor, 180);
+        }
+
+        if (settings.sound) {
+          playSound({ type: "boom" }, true);
+        }
         pushState();
       }
 
       // Newline detection within this change (also disabled in reduced effects)
-      if (
-        settings.blips &&
-        insertedText.includes("\n") &&
-        !settings.reducedEffects
-      ) {
-        effects.showNewline(editor, settings.shake);
+      if (hasNewlineInsert && !settings.reducedEffects) {
+        if (settings.blips) {
+          effects.showNewline(editor, false);
+        }
+        if (settings.shake) {
+          effects.showShake(editor, 140);
+        }
+        lastNewlineAt.set(editor, Date.now());
       }
 
       lastLineByEditor.set(editor, caret.line);
@@ -260,22 +283,29 @@ export function activate(context: vscode.ExtensionContext) {
       const editor = e.textEditor;
       const last = lastLineByEditor.get(editor);
       const now = editor.selection.active.line;
+      const lastNewline = lastNewlineAt.get(editor) ?? 0;
       if (
         last !== undefined &&
         now !== last &&
-        settings.blips &&
         settings.navigationEffects &&
-        !settings.reducedEffects
+        !settings.reducedEffects &&
+        Date.now() - lastNewline > NEWLINE_NAV_IGNORE_MS
       ) {
-        effects.showNewline(editor, settings.shake);
+        if (settings.blips) {
+          effects.showNewline(editor, false);
+        }
+        if (settings.shake) {
+          effects.showShake(editor, 140);
+        }
       }
       lastLineByEditor.set(editor, now);
     }),
   );
 
-  function sanitizeLabel(ch: string): string {
-    if (ch === "\n") return "";
+  function sanitizeLabel(ch: string): string | undefined {
+    if (ch === "\n") return undefined;
     if (ch === "\t") return "↹";
+    if (ch.length > 1) return undefined;
     if (ch.trim() === "") return "SPACE";
     return ch;
   }
